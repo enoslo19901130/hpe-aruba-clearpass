@@ -1,8 +1,15 @@
 """以輕量假物件驗證 GUI 流程，不建立實際 Tk 視窗。"""
 
 import unittest
+from unittest.mock import patch
 
-from clearpass_tool.gui import ClearPassDesktopApp, attribute_name_options
+from clearpass_tool.config import ConfigurationError, Settings
+from clearpass_tool.gui import (
+    CLIENT_CREDENTIALS_HELP_URL,
+    ClearPassDesktopApp,
+    attribute_name_options,
+    clearpass_address_for_display,
+)
 
 
 class FakeVar:
@@ -104,6 +111,56 @@ class LookupFlowTests(unittest.TestCase):
             ["oauth", ("endpoint", "AA:BB:CC:DD:EE:FF")],
         )
         self.assertEqual(endpoint["id"], 42)
+
+
+class ConnectionFormTests(unittest.TestCase):
+    """驗證 GUI 僅接收 ClearPass 位址並固定使用 HTTPS。"""
+
+    def test_display_address_omits_https_scheme(self):
+        """確認完整設定 URL 載入 GUI 時只顯示 IP/FQDN 與 port。"""
+        self.assertEqual(
+            clearpass_address_for_display("https://clearpass.example.com:443/"),
+            "clearpass.example.com:443",
+        )
+
+    def test_form_builds_https_url_from_fqdn(self):
+        """確認使用者輸入 FQDN 後，送往設定層的 URL 固定為 HTTPS。"""
+        app = object.__new__(ClearPassDesktopApp)
+        app.base_url_var = FakeVar("clearpass.example.com")
+        app.client_id_var = FakeVar("client")
+        app.client_secret_var = FakeVar("secret")
+        app.verify_tls_var = FakeVar(True)
+        app.ca_bundle_var = FakeVar("")
+        app.initial_settings = Settings.from_values(
+            base_url="clearpass.example.com",
+            client_id="client",
+            client_secret="secret",
+            verify_tls=True,
+        )
+
+        settings = app._settings_from_form()
+
+        self.assertEqual(
+            settings.clearpass_base_url,
+            "https://clearpass.example.com",
+        )
+
+    def test_form_rejects_user_supplied_scheme(self):
+        """確認 scheme 不可在唯讀 HTTPS 前綴之外重複輸入。"""
+        app = object.__new__(ClearPassDesktopApp)
+        app.base_url_var = FakeVar("https://clearpass.example.com")
+
+        with self.assertRaisesRegex(ConfigurationError, "不需包含 https://"):
+            app._settings_from_form()
+
+    @patch("clearpass_tool.gui.webbrowser.open_new_tab", return_value=True)
+    def test_credentials_help_opens_official_documentation(self, open_new_tab):
+        """確認資訊說明連結會開啟指定的 Aruba 官方文件。"""
+        app = object.__new__(ClearPassDesktopApp)
+
+        app._open_client_credentials_help()
+
+        open_new_tab.assert_called_once_with(CLIENT_CREDENTIALS_HELP_URL)
 
 
 if __name__ == "__main__":

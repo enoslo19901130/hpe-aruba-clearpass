@@ -5,6 +5,7 @@
 功能：
 
 - 以 MAC Address 查詢 Aruba ClearPass Endpoint。
+- ClearPass 連線欄位只需輸入 IP 或 FQDN，程式固定使用 HTTPS。
 - 按下查詢時會先驗證 OAuth；認證成功後才送出 Endpoint 查詢。
 - Attribute 名稱下拉選單固定提供 `[ FS STATUS ]`，並合併 Endpoint 的既有 attribute；也可直接輸入其他名稱。
 - 更新值限制為 `[ UNKNOWN ]` 與 `[ HIGH RISK ]`，預設選取 `[ HIGH RISK ]`。
@@ -34,7 +35,7 @@ python app.py
 
 ## 操作流程
 
-1. 輸入或確認 ClearPass URL、Client ID、Client Secret 與 TLS 設定。
+1. 輸入或確認 ClearPass IP / FQDN、Client ID、Client Secret 與 TLS 設定；`https://` 由程式固定提供。
 2. 輸入 MAC Address 後按下「查詢 Endpoint」。
 3. 程式先呼叫 OAuth；只有認證成功才會送出 Endpoint 查詢，因此不必預先按「測試 OAuth 連線」。
 4. 查詢成功後，Attribute 名稱預設為 `[ FS STATUS ]`；下拉選單也會包含該 Endpoint 已存在的其他 attributes。
@@ -48,9 +49,11 @@ python app.py
 
 視窗內可直接輸入：
 
-- ClearPass URL
+- ClearPass IP / FQDN（不需輸入 `https://`）
 - Client ID
 - Client Secret（以圓點遮蔽）
+
+Client ID 與 Client Secret 的建立及取得方式，可由 GUI 的「取得資訊說明」開啟 [Aruba 官方文件](https://developer.arubanetworks.com/cppm/v6.12.7/docs/getting-started-with-the-clearpass-policy-manager-api)。
 
 也可在 `.env` 預先設定：
 
@@ -76,7 +79,7 @@ CLEARPASS_ATTRIBUTE_NAME=[ FS STATUS ]
 
 `.env` 不會覆蓋作業系統已存在的同名環境變數。程式也不會把視窗中輸入的 secret 寫回磁碟；若使用 `.env`，請妥善保護該檔案。`.env` 已列入 `.gitignore`。
 
-ClearPass API Client 應使用 `Client credentials` Grant Type。程式固定向 `/api/oauth` 傳送 `grant_type=client_credentials`，不使用管理者帳號密碼。
+ClearPass API Client 應使用 `Client credentials` Grant Type。程式固定向 `/api/oauth` 傳送 `grant_type=client_credentials`，不使用管理者帳號密碼。[取得資訊說明](https://developer.arubanetworks.com/cppm/v6.12.7/docs/getting-started-with-the-clearpass-policy-manager-api)
 
 ## TLS 伺服器憑證
 
@@ -84,7 +87,7 @@ ClearPass API Client 應使用 `Client credentials` Grant Type。程式固定向
 
 1. 若 ClearPass 使用公開或系統已信任的 CA，保持「驗證 TLS 伺服器憑證」勾選即可。
 2. 若使用公司內部 CA，請在視窗選擇 CA bundle / PEM，或設定 `CLEARPASS_CA_BUNDLE`。
-3. ClearPass URL 最好使用憑證 SAN 內的 FQDN。若使用 `172.17.20.181`，但憑證只有 DNS hostname，仍會因 hostname mismatch 驗證失敗。
+3. ClearPass IP / FQDN 最好使用憑證 SAN 內的 FQDN。若使用 `172.17.20.181`，但憑證只有 DNS hostname，仍會因 hostname mismatch 驗證失敗。
 4. 測試環境可取消 TLS 驗證，但程式會在第一次連線前再次顯示安全警告；正式環境不建議停用。
 
 `.env` 範例：
@@ -94,7 +97,7 @@ CLEARPASS_VERIFY_TLS=true
 CLEARPASS_CA_BUNDLE=/absolute/path/to/company-clearpass-ca.pem
 ```
 
-程式拒絕將 OAuth secret 傳送到遠端的純 HTTP URL；只有 `localhost` / `127.0.0.1` 測試服務可使用 HTTP。
+GUI 固定使用 HTTPS，不提供切換 HTTP 的選項；底層設定層也會拒絕將 OAuth secret 傳送到遠端的純 HTTP URL。
 
 ### 目前 ClearPass 憑證檢查（2026-07-29）
 

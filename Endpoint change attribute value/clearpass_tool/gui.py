@@ -6,6 +6,7 @@ import json
 import queue
 import threading
 import tkinter as tk
+import webbrowser
 from datetime import datetime
 from tkinter import filedialog, messagebox, scrolledtext, ttk
 from typing import Any, Callable
@@ -31,6 +32,10 @@ RED = "#b83a2f"
 RED_SOFT = "#fbeceb"
 BORDER = "#d8e0dc"
 NOT_SET = "（尚未設定）"
+CLIENT_CREDENTIALS_HELP_URL = (
+    "https://developer.arubanetworks.com/cppm/v6.12.7/docs/"
+    "getting-started-with-the-clearpass-policy-manager-api"
+)
 
 
 def display_value(value: Any) -> str:
@@ -40,6 +45,13 @@ def display_value(value: Any) -> str:
     if isinstance(value, (dict, list)):
         return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
     return str(value)
+
+
+def clearpass_address_for_display(base_url: str) -> str:
+    """移除設定值的 URL scheme，讓 GUI 只顯示 ClearPass IP、FQDN 與選填 port。"""
+    value = base_url.strip().rstrip("/")
+    _scheme, separator, address = value.partition("://")
+    return address if separator else value
 
 
 def attribute_name_options(
@@ -76,7 +88,9 @@ class ClearPassDesktopApp(ttk.Frame):
         self.result_queue: queue.Queue[tuple] = queue.Queue()
 
         # Tk 變數是畫面與應用程式狀態之間的單一資料來源。
-        self.base_url_var = tk.StringVar(value=settings.clearpass_base_url)
+        self.base_url_var = tk.StringVar(
+            value=clearpass_address_for_display(settings.clearpass_base_url)
+        )
         self.client_id_var = tk.StringVar(value=settings.clearpass_client_id)
         self.client_secret_var = tk.StringVar(value=settings.clearpass_client_secret)
         self.verify_tls_var = tk.BooleanVar(value=settings.clearpass_verify_tls)
@@ -181,7 +195,7 @@ class ClearPassDesktopApp(ttk.Frame):
         self.connection_badge.grid(row=0, column=1, rowspan=2, sticky="e")
 
     def _build_connection_card(self) -> None:
-        """建立 ClearPass URL、OAuth 憑證與 TLS 憑證設定區。"""
+        """建立 ClearPass IP/FQDN、OAuth 憑證與 TLS 憑證設定區。"""
         card = ttk.LabelFrame(
             self,
             text="  連線與憑證設定  ",
@@ -192,12 +206,37 @@ class ClearPassDesktopApp(ttk.Frame):
         card.columnconfigure(0, weight=1)
         card.columnconfigure(1, weight=1)
 
-        ttk.Label(card, text="ClearPass URL", style="Card.TLabel").grid(row=0, column=0, columnspan=2, sticky="w")
-        self.base_url_entry = ttk.Entry(card, textvariable=self.base_url_var)
-        self.base_url_entry.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(5, 12))
+        ttk.Label(card, text="ClearPass IP / FQDN", style="Card.TLabel").grid(
+            row=0, column=0, columnspan=2, sticky="w"
+        )
+        address_row = ttk.Frame(card, style="Card.TFrame")
+        address_row.grid(
+            row=1, column=0, columnspan=2, sticky="ew", pady=(5, 12)
+        )
+        address_row.columnconfigure(1, weight=1)
+        # HTTPS scheme 固定由程式提供，使用者只能編輯 ClearPass 位址。
+        ttk.Label(address_row, text="https://", style="Card.TLabel").grid(
+            row=0, column=0, sticky="w", padx=(0, 3)
+        )
+        self.base_url_entry = ttk.Entry(address_row, textvariable=self.base_url_var)
+        self.base_url_entry.grid(row=0, column=1, sticky="ew")
 
         ttk.Label(card, text="Client ID", style="Card.TLabel").grid(row=2, column=0, sticky="w", padx=(0, 8))
         ttk.Label(card, text="Client Secret", style="Card.TLabel").grid(row=2, column=1, sticky="w", padx=(8, 0))
+        # 連結直接指向 Aruba 官方 API Client 建立與憑證取得說明。
+        self.credentials_help_link = tk.Label(
+            card,
+            text="取得資訊說明",
+            background=CARD,
+            foreground="#1769aa",
+            activeforeground=GREEN,
+            cursor="hand2",
+            font=("Helvetica Neue", 10, "underline"),
+            takefocus=True,
+        )
+        self.credentials_help_link.grid(row=2, column=1, sticky="e")
+        self.credentials_help_link.bind("<Button-1>", self._open_client_credentials_help)
+        self.credentials_help_link.bind("<Return>", self._open_client_credentials_help)
         self.client_id_entry = ttk.Entry(card, textvariable=self.client_id_var)
         self.client_id_entry.grid(row=3, column=0, sticky="ew", padx=(0, 8), pady=(5, 12))
         self.client_secret_entry = ttk.Entry(card, textvariable=self.client_secret_var, show="•")
@@ -226,6 +265,25 @@ class ClearPassDesktopApp(ttk.Frame):
         self.browse_button.grid(row=0, column=1)
         self.test_connection_button = ttk.Button(card, text="測試 OAuth 連線", style="Accent.TButton", command=self._test_connection)
         self.test_connection_button.grid(row=7, column=1, sticky="e", pady=(14, 0))
+
+    def _open_client_credentials_help(self, _event: tk.Event | None = None) -> None:
+        """使用系統預設瀏覽器開啟 Aruba API Client 資訊取得說明。"""
+        try:
+            opened = webbrowser.open_new_tab(CLIENT_CREDENTIALS_HELP_URL)
+        except webbrowser.Error as error:
+            messagebox.showerror(
+                "無法開啟說明",
+                f"請手動開啟以下網址：\n{CLIENT_CREDENTIALS_HELP_URL}\n\n{error}",
+                parent=self.root,
+            )
+            return
+
+        if not opened:
+            messagebox.showwarning(
+                "無法開啟說明",
+                f"請手動開啟以下網址：\n{CLIENT_CREDENTIALS_HELP_URL}",
+                parent=self.root,
+            )
 
     def _build_endpoint_card(self) -> None:
         """建立 MAC 查詢、Endpoint 摘要、attribute 選擇與更新確認區。"""
@@ -329,8 +387,17 @@ class ClearPassDesktopApp(ttk.Frame):
 
     def _settings_from_form(self) -> Settings:
         """讀取連線表單並回傳完成安全檢查的 Settings。"""
+        address = self.base_url_var.get().strip()
+        if not address:
+            raise ConfigurationError("請輸入 ClearPass IP 或 FQDN")
+        if "://" in address:
+            raise ConfigurationError(
+                "ClearPass IP / FQDN 不需包含 https://，請只輸入主機位址"
+            )
+
         settings = Settings.from_values(
-            base_url=self.base_url_var.get(),
+            # GUI 不接受可變 scheme，所有 OAuth 與 API 請求一律使用 HTTPS。
+            base_url=f"https://{address}",
             client_id=self.client_id_var.get(),
             client_secret=self.client_secret_var.get(),
             verify_tls=self.verify_tls_var.get(),

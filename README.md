@@ -7,6 +7,8 @@
 2026-07-29 新增的純 Python／Tkinter 桌面工具，主要功能如下：
 
 - 使用 OAuth 2.0 `client_credentials` 連線 ClearPass。
+- GUI 只需輸入 ClearPass IP 或 FQDN，程式固定使用 HTTPS。
+- Client ID／Secret 欄位提供 Aruba 官方「取得資訊說明」連結。
 - 按 MAC Address 查詢 Endpoint；查詢前會先驗證 OAuth 狀態。
 - Attribute 名稱預設提供 `[ FS STATUS ]`，並合併 Endpoint 既有 attributes。
 - Attribute 值可選 `[ UNKNOWN ]` 或 `[ HIGH RISK ]`，預設為 `[ HIGH RISK ]`。
