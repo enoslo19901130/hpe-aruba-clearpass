@@ -1,0 +1,11 @@
+{
+    "schema_version": 2,
+    "commit": "",
+    "indexed_at": "2026-07-29T03:39:49Z",
+    "project": "cppm_api_endpoint_attribute",
+    "nodes": 211,
+    "edges": 801,
+    "original_size": 2097152,
+    "compressed_size": 85808,
+    "compression_level": 3
+}
