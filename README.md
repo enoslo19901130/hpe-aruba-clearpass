@@ -15,16 +15,20 @@
 - 支援嚴格 TLS 驗證及自訂 CA bundle／PEM 憑證。
 - OAuth Token 只保存在 Python 程序記憶體，不顯示於介面。
 
-專案位置：[`CPPM-API-Endpoint change attribute value`](./CPPM-API-Endpoint%20change%20attribute%20value/)
+專案位置：[`Endpoint change attribute value`](./Endpoint%20change%20attribute%20value/)
 
 完整安裝、設定、憑證、代碼架構與維護說明：
 
-- [開啟專案 README](./CPPM-API-Endpoint%20change%20attribute%20value/README.md)
+- [開啟專案 README](./Endpoint%20change%20attribute%20value/README.md)
+
+## GUI 畫面
+
+![ClearPass Endpoint Attribute GUI](./Endpoint%20change%20attribute%20value/assets/gui-screenshot.jpg)
 
 ## 快速啟動
 
 ```bash
-cd "CPPM-API-Endpoint change attribute value"
+cd "Endpoint change attribute value"
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt

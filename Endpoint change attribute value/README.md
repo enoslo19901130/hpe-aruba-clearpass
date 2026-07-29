@@ -12,6 +12,12 @@
 - 合併原有 attributes 後 PATCH，並再次 GET 驗證寫入結果。
 - OAuth token 只存在 Python 程序記憶體，不會顯示在畫面或寫入檔案。
 
+## GUI 畫面
+
+下圖為程式啟動後的完整桌面介面；Client Secret 欄位在畫面中保持空白或以圓點遮蔽，不會顯示明文。
+
+![ClearPass Endpoint Attribute GUI](assets/gui-screenshot.jpg)
+
 ## 快速啟動
 
 需求：Python 3.10 以上，並包含 Tk 8.6 以上。
